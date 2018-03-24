@@ -16,6 +16,7 @@
     "eslint-plugin-import": "^2.9.0"
   },
   "dependencies": {
+    "matter-js": "^0.14.1",
     "socket.io": "^2.0.4",
     "xxhashjs": "^0.2.2"
   }
