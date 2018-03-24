@@ -23,36 +23,48 @@ app.listen(PORT);
 
 io.on('connection', (sock) => {
   const socket = sock;
+  const randX = Math.floor((Math.random() * 925)) + 1;
+  const randY = Math.floor((Math.random() * 725)) + 1;
   socket.join('room1');
   socket.avatar = {
     hash: xxh.h32(`${socket.id}${new Date().getTime()}`, 0xCAFEBABE).toString(16),
     lastUpdate: new Date().getTime(),
-    x: 0,
-    y: 0,
-    prevX: 0,
-    prevY: 0,
-    destX: 0,
-    destY: 0,
+    x: randX,
+    y: randY,
+    prevX: randX,
+    prevY: randY,
+    destX: randX,
+    destY: randY,
     alpha: 0,
     width: 75,
     height: 75,
-    canJump: false,
   };
   socket.emit('joined', socket.avatar);
 
-  socket.on('gravityUpdate', (data) => {
-    socket.avatar = data;
-    if (data.destY < 525) {
-      const gravity = data.destY + 5;
-      socket.avatar.destY = gravity;
-      io.to(socket.id).emit('updateGravity', socket.avatar);
+  socket.on('moveUpdate', (data) => {
+    let moveVal = 0;
+    socket.avatar = data.user;
+    socket.dir = data.dir;
+    socket.avatar.lastUpdate = new Date().getTime();
+    if ((socket.dir === 'left' && socket.avatar.destX > 0) || (socket.dir === 'right' && socket.avatar.destX < 925)) {
+      moveVal = 2;
     }
+    if ((socket.dir === 'up' && socket.avatar.destY > 0) || (socket.dir === 'down' && socket.avatar.destY < 725)) {
+      moveVal = 2;
+    }
+    io.in('room1').emit('updateMove', { user: socket.avatar, dir: socket.dir, val: moveVal });
   });
 
-  socket.on('moveUpdate', (data) => {
-    socket.avatar = data;
-    socket.avatar.lastUpdate = new Date().getTime();
-    socket.broadcast.to('room1').emit('updateMove', socket.avatar);
+  socket.on('collisionCheck', (data) => {
+    if (data.user1.x < data.user2.x + data.user2.width
+        && data.user1.x + data.user1.width > data.user2.x
+        && data.user1.y < data.user2.y + data.user2.height
+        && data.user1.height + data.user1.y > data.user2.y) {
+      // collision detection
+      io.in('room1').emit('collisionDetected', { user1: data.user1, user2: data.user2 });
+    } else {
+      io.in('room1').emit('noCollision', { user1: data.user1, user2: data.user2 });
+    }
   });
 
   socket.on('disconnect', () => {

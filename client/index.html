@@ -3,7 +3,22 @@
 <head>
     <style>
         canvas {
-            border: 3px solid black;
+            border: 5px solid black;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: white;
+        }
+        body {
+            background-color: grey;
+            text-align: center;
+        }
+        #title {
+            font-family: "Comic Sans MS";
+            font-size: 40px;
+            margin-bottom: 10px;
+            position: relative;
+            bottom: 15px;
         }
     </style>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
@@ -14,23 +29,26 @@
         let ctx;
         let socket; 
         let color;
+        let prevColor;
         let hash;
         let moveLeft;
         let moveRight;
+        let moveUp;
+        let moveDown;
         let users = {};
         let leftKey = 37;
+        let upKey = 38;
         let rightKey = 39;
+        let downKey = 40;
         let aKey = 65;
         let dKey = 68;
-        let space = 32;
-        let userCreated = false;
-        let jump = false;
+        let sKey = 83;
+        let wKey = 87;
 
         const createUser = (data) => {
             hash = data.hash;
             users[hash] = data;
             requestAnimationFrame(draw);
-            userCreated = true;
             console.log(users[hash]);
         }
         
@@ -40,22 +58,35 @@
         };
 
         const update = (data) => {
-            if(!users[data.hash]) {
-                users[data.hash] = data;
+            if(!users[data.user.hash]) {
+                users[data.user.hash] = data.user;
                 return;
             }
-            const user = users[data.hash];
-            if(user.lastUpdate >= data.lastUpdate) {
+            const user = users[data.user.hash];
+            if(user.lastUpdate >= data.user.lastUpdate) {
                 return;
+            }
+
+            user.lastUpdate = data.user.lastUpdate;
+            user.prevX = data.user.prevX;
+            user.prevY = data.user.prevY;
+            user.destX = data.user.destX;
+            user.destY = data.user.destY;
+            user.alpha = 0.05;
+            
+            if(data.dir === 'left') {
+                user.destX -= data.val;
+            }
+            else if(data.dir === 'right') {
+                user.destX += data.val;
+            }
+            else if(data.dir === 'up') {
+                user.destY -= data.val;
+            }
+            else if(data.dir === 'down') {
+                user.destY += data.val;
             }
             
-            user.lastUpdate = data.lastUpdate;
-            user.prevX = data.prevX;
-            user.prevY = data.prevY;
-            user.destX = data.destX;
-            user.destY = data.destY;
-            user.alpha = 0.05;
-            user.canJump = data.canJump;
         };
 
         const lerp = (v0, v1, alpha) => {
@@ -64,44 +95,30 @@
 
         const updatePos = (data) => {
             const user = users[hash];
+            let direction = "";
             user.prevX = user.x;
             user.prevY = user.y;
-            if(moveLeft && user.destX > 0) {
-                user.destX-=2;
-                console.log(user.destX + " " + user.destY);
+            if(moveLeft) {
+                direction = "left";
             }
-            if(moveRight && user.destX < 525) {
-                user.destX+=2;
-                console.log(user.destX + " " + user.destY);
+            if(moveRight) {
+                direction = "right";
             }
-            if(jump && user.canJump) {
-                user.destY -= 100;
-                user.canJump = false;
+            if(moveUp) {
+                direction = "up";
             }
-            if(user.y >= 524)
-                user.canJump = true;
-            
+            if(moveDown) {
+                direction = "down";
+            }
+        
             user.alpha = 0.1;
-            socket.emit('moveUpdate', user);
+            socket.emit('moveUpdate', {user: user, dir: direction});
         };
-
-        const getGrav = () => {
-            socket.emit('gravityUpdate', users[hash]);
-        };
-
-        const updateGrav = (data) => {
-            const user = users[hash];
-            user.prevY = user.y;
-            user.destY = data.destY;
-            user.alpha = 0.05;
-        };
-
+     
         const draw = (data) => {
             updatePos();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if(userCreated) {
-                getGrav();
-            }
+            
             const keys = Object.keys(users);
             for(let i = 0; i < keys.length; i++) {
                 const user = users[keys[i]];
@@ -114,6 +131,12 @@
                 user.x = lerp(user.prevX, user.destX, user.alpha);
                 user.y = lerp(user.prevY, user.destY, user.alpha);
                 ctx.fillRect(user.x, user.y, user.width, user.height);
+                
+                if(keys.length > 1) {
+                    for(let j = i + 1; j < keys.length; j++) {
+                        socket.emit('collisionCheck', {user1: users[keys[i]], user2: users[keys[j]]});
+                    }
+                }
             }
             requestAnimationFrame(draw);
         };
@@ -124,8 +147,11 @@
                 moveLeft = false;
             if(key === dKey || key === rightKey)
                 moveRight = false;
-            if(key === space)
-                jump = false;
+            if(key === sKey || key === downKey)
+                moveDown = false;
+            if(key === wKey || key === upKey)
+                moveUp = false;
+            
         }
         
         const keyDown = (e) => {
@@ -135,14 +161,24 @@
                 moveLeft = true;
             if(key === dKey || key === rightKey)
                 moveRight = true;
-            if(key === space) {
-                jump = true;
-            }            
-            if(moveLeft || moveRight || jump) {
+            if(key === sKey || key === downKey)
+                moveDown = true;
+            if(key === wKey || key === upKey)
+                moveUp = true;
+                    
+            if(moveLeft || moveRight || moveUp || moveDown) {
                 e.preventDefault();
             }
         }
         
+        const changeColor = () => {           
+            color = 'green';
+        };
+
+        const changeBack = () => {
+            color = prevColor;
+        }
+
         const randomNum = (r) => {
             return Math.floor(Math.random() * r);
         };
@@ -150,11 +186,13 @@
         const init = () => {
             canvas = document.querySelector("#canvas");
             ctx = canvas.getContext("2d");
-            color = 'rgb('+randomNum(255) + ',' + randomNum(255) + ',' + randomNum(255) +')';      
+            color = 'rgb('+randomNum(255) + ',' + randomNum(255) + ',' + randomNum(255) +')';
+            prevColor = color;
             socket = io.connect();
             socket.on('joined', createUser);
             socket.on('updateMove', update);
-            socket.on('updateGravity', updateGrav);
+            socket.on('collisionDetected', changeColor);
+            socket.on('noCollision', changeBack);
             socket.on('disconnect', removeUser);
             document.body.addEventListener('keyup', keyUp);
             document.body.addEventListener('keydown', keyDown);
@@ -163,6 +201,7 @@
     </script>
 </head>
 <body>
-    <canvas id="canvas" height="600" width="600">Please use an HTML 5 browser</canvas>
+    <h1 id="title">Bumper<sup>2</sup></h1>
+    <canvas id="canvas" height="800" width="1000">Please use an HTML 5 browser</canvas>
 </body>
 </html>
