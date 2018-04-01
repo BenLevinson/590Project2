@@ -122,7 +122,7 @@ const updatePos = () => {
   }
   user.alpha = 0.1;
   socket.emit('moveUpdate', {
-    user: user,
+    usr: user,
     xDir: xDirection,
     yDir: yDirection,
     currVelX: user.currVelocityX,
@@ -135,14 +135,6 @@ const updatePos = () => {
 const draw = () => {
   updatePos();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  setInterval(function() {
-    ctx.strokeStyle = 'black';
-    ctx.fillStyle = 'red';
-    ctx.beginPath();
-    ctx.arc(400 + 75, 100 + 75, 20, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fill();
-  }, 10000);
   const keys = Object.keys(users);
   for (let i = 0; i < keys.length; i++) {
     const user = users[keys[i]];

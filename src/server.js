@@ -5,26 +5,21 @@ const fs = require('fs');
 
 const PORT = process.env.PORT || process.env.NODE_PORT || 3000;
 
-const onRequest = (request, response) => {
-  if (request.url === '/client.js') {
-    fs.readFile(`${__dirname}/../client/client.js`, (err, data) => {
-      if (err) throw err;
-      response.writeHead(200, { 'Content-Type': 'application/javascript' });
-      response.end(data);
-    });
-  } else {
-    fs.readFile(`${__dirname}/../client/index.html`, (err, data) => {
-      if (err) throw err;
-      response.writeHead(200, { 'Content-Type': 'text/html' });
-      response.end(data);
-    });
-  }
+const handler = (req, res) => {
+  fs.readFile(`${__dirname}/../client/index.html`, (err, data) => {
+    if (err) {
+      throw err;
+    }
+    res.writeHead(200);
+    res.end(data);
+  });
 };
 
-const app = http.createServer(onRequest);
-app.listen(PORT);
+const app = http.createServer(handler);
 
 const io = socketio(app);
+
+app.listen(PORT);
 
 io.on('connection', (sock) => {
   const socket = sock;
@@ -58,15 +53,6 @@ io.on('connection', (sock) => {
       let user1Y = data.user1.y;
       let user2X = data.user2.x;
       let user2Y = data.user2.y;
-      // collision detection between player and powerup (SAT)
-      // const clampedValX = Math.max(healthX, user1X, user1X + data.user1.width);
-      // const clampedValY = Math.max(healthY, user1Y, user1Y + data.user1.height);
-      // var distX = healthX - clampedValX;
-      // var distY = healthY - clampedValY;
-      // var distSquared = (distX * distX) + (distY * distY);
-      // if (distSquared < healthRad * healthRad) {
-      // emit to client that they got health
-      // }
       // collision detection between two players (AABB)
       if (data.user1.x < data.user2.x + data.user2.width
       && data.user1.x + data.user1.width > data.user2.x
