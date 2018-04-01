@@ -2,8 +2,11 @@
   "name": "package.json",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": ".src/server.js",
   "scripts": {
+    "build": "babel ./client --out-file ./hosted/bundle.js",
+    "watch": "babel --watch ./client/client.js --out-file ./hosted/bundle.js",
+    "nodemon": "nodemon --watch ./src ./src/server.js",
     "start": "node ./src/server.js",
     "pretest": "eslint ./src --fix",
     "test": "echo \"Tests complete\""
@@ -11,9 +14,12 @@
   "author": "Ben Levinson & Nick Palumbo",
   "license": "ISC",
   "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
     "eslint": "^4.19.1",
     "eslint-config-airbnb": "^16.1.0",
-    "eslint-plugin-import": "^2.9.0"
+    "eslint-plugin-import": "^2.9.0",
+    "nodemon": "^1.17.3"
   },
   "dependencies": {
     "matter-js": "^0.14.1",
