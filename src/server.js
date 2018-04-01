@@ -13,7 +13,7 @@ const onRequest = (request, response) => {
       response.end(data);
     });
   } else {
-    fs.readFile(`${__dirname}/../client/client.html`, (err, data) => {
+    fs.readFile(`${__dirname}/../client/index.html`, (err, data) => {
       if (err) throw err;
       response.writeHead(200, { 'Content-Type': 'text/html' });
       response.end(data);
